@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бак ловит мусор</title>
+    <style>
+        html {
+            zoom: 50%; /* Устанавливаем масштаб страницы на 75% */
+        }
+          body {
+            margin: 0;
+            background-color: #f0f0f0; /* серый фон для страницы */
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            background-color: #ffffff; /* белый фон для игрового поля */
+        }
+        .controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .control-button {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        #score {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        #record {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+        #gameOver {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #333;
+            text-align: center;
+            display: none;
+        }
+        #restartButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .skin-container {
+            text-align: center;
+            margin-top: 20px;
+            background-color: #ffffff; /* белый фон для контейнера со скинами */
+            padding: 10px; /* добавляем немного отступов для разделения */
+        }
+        .skins {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .skin {
+            cursor: pointer;
+        }
+        .skin img {
+            width: 128px;
+            height: auto;
+        }
+        .skin p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <button class="control-button" id="moveLeft">&#8592;</button>
+        <button class="control-button" id="moveRight">&#8594;</button>
+    </div>
+    <div id="score">Очки: 0</div>
+    <div id="record">Рекорд: 0</div>
+    <div id="gameOver">
+        <div id="gameOverText"></div>
+        <button id="restartButton">Начать игру заново</button>
+    </div>
+    <div class="skin-container">
+        <div class="skins">
+            <div class="skin" id="glass" onclick="changeSkin('glass')">
+                <img src="https://telegra.ph/file/63c7919049569550f8eb5.jpg" alt="glass">
+                <p>Стекло</p>
+            </div>
+            <div class="skin" id="plastic" onclick="changeSkin('plastic')">
+                <img src="https://telegra.ph/file/0fd2399ecf17aaf97251a.jpg" alt="plastic">
+                <p>Пластик</p>
+            </div>
+            <div class="skin" id="bio" onclick="changeSkin('bio')">
+                <img src="https://telegra.ph/file/13f044de551a457d72ac8.jpg" alt="bio">
+                <p>Биоразлагаемые</p>
+            </div>
+            <div class="skin" id="paper" onclick="changeSkin('paper')">
+                <img src="https://telegra.ph/file/61364bb402e30637fe98a.jpg" alt="paper">
+                <p>Бумага</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        var canvas = document.getElementById("gameCanvas");
+        var ctx = canvas.getContext("2d");
+
+        // Загрузка текстур
+        var wolfSkins = {
+            "glass": "https://telegra.ph/file/63c7919049569550f8eb5.jpg",
+            "plastic": "https://telegra.ph/file/0fd2399ecf17aaf97251a.jpg",
+            "bio": "https://telegra.ph/file/13f044de551a457d72ac8.jpg",
+            "paper": "https://telegra.ph/file/61364bb402e30637fe98a.jpg"
+        };
+
+        var eggSkins = {
+            "glass": [
+                "https://telegra.ph/file/5da4223030dc05231518c.jpg",
+                "https://telegra.ph/file/a9a3744cced4c5ec45d7f.jpg",
+                "https://telegra.ph/file/3022c1ad38342c8d86e26.jpg",
+                "https://telegra.ph/file/95b3b529c1fe03be42414.jpg",
+                "https://telegra.ph/file/f3b10603ebefd2397e46c.jpg",
+                "https://telegra.ph/file/96a257fe32734fe9ffc42.jpg",
+                "https://telegra.ph/file/8518b7e0ad2b7fcd1c2aa.jpg",
+                "https://telegra.ph/file/f0c88a77d6df1e887fc34.jpg",
+                "https://telegra.ph/file/409ae5dc32c6697cf3c2b.jpg",
+                "https://telegra.ph/file/bdc7de49e6c6240c764dd.jpg"
+            ],
+            "plastic": [
+                "https://telegra.ph/file/a6ba382ae9a5a2925c5e6.jpg",
+                "https://telegra.ph/file/6b3c4f07941196015b1b0.jpg",
+                "https://telegra.ph/file/6f8c94799002646303939.jpg",
+                "https://telegra.ph/file/856a486b2fa59f3d2f088.jpg",
+                "https://telegra.ph/file/ddd60be8ff4314c779e0d.jpg",
+                "https://telegra.ph/file/0577dafe3a438423374c0.jpg"
+            ],
+            "bio": [
+                "https://telegra.ph/file/10dfeaf08534c86784243.jpg",
+                "https://telegra.ph/file/a866862271fecc3de509a.jpg",
+                "https://telegra.ph/file/c65078323624d5eb13015.jpg",
+                "https://telegra.ph/file/f8a0ed9eb0962d5582752.jpg",
+                "https://telegra.ph/file/923b4ea6b9210f8bc4802.jpg"
+            ],
+            "paper": [
+                "https://telegra.ph/file/54b073471e7e19ed71f48.jpg",
+                "https://telegra.ph/file/1e3b9f9ded990f955d2b6.jpg",
+                "https://telegra.ph/file/4adee0d55644da4bd515b.jpg",
+                "https://telegra.ph/file/e2e780b15e7846f49f0c5.jpg",
+                "https://telegra.ph/file/f826b1d02e0fb0302e8ab.jpg"
+            ]
+        };
+
+        // Размер текстур
+        var textureSize = 128;
+
+        // Позиция волка
+        var wolfX = canvas.width / 2;
+        var wolfY = canvas.height - textureSize;
+
+        // Позиция яйца
+        var eggX = Math.random() * (canvas.width - textureSize);
+        var eggY = 0;
+
+        // Скорость движения волка
+        var wolfSpeed = 5;
+
+        // Переменные для отслеживания удержания кнопок
+        var moveLeftPressed = false;
+        var moveRightPressed = false;
+
+        // Счётчик очков
+        var score = 0;
+
+        // Переменная для отслеживания состояния игры
+        var gameOver = false;
+
+        // Скорость падения яйца
+        var eggSpeed = 2;
+
+        // Загрузка рекорда из Local Storage
+        var record = localStorage.getItem("record");
+        if (!record) {
+            record = 0;
+        }
+
+        // Отображение рекорда
+        document.getElementById("record").innerText = "Рекорд: " + record;
+
+        // Переменная для хранения выбранного скина волка
+        var skinType = "glass"; // По умолчанию ставим скин "Стекло"
+
+        // Переменная для хранения типа скина яйца
+        var eggSkinType;
+//type skin
+        var MType;
+        var Ifer = ""; // Переменная для хранения состояния условия
+
+        // Функция смены скина волка
+        function changeSkin(type) {
+            skinType = type;
+        }
+
+        // Обработка нажатий на кнопки
+        document.getElementById("moveLeft").addEventListener("touchstart", function(event) {
+            event.preventDefault(); // Отмена действия браузера по умолчанию
+            moveLeftPressed = true;
+            moveWolf(-wolfSpeed);
+        });
+
+        document.getElementById("moveRight").addEventListener("touchstart", function(event) {
+            event.preventDefault(); // Отмена действия браузера по умолчанию
+            moveRightPressed = true;
+            moveWolf(wolfSpeed);
+        });
+
+        // Обработка отпускания кнопок
+        document.addEventListener("touchend", function(event) {
+            moveLeftPressed = false;
+            moveRightPressed = false;
+        });
+
+        // Функция движения волка
+        function moveWolf(speed) {
+            wolfX += speed;
+
+            // Проверка на выход за границы
+            if (wolfX < 0) {
+                wolfX = 0;
+            } else if (wolfX + textureSize > canvas.width) {
+                wolfX = canvas.width - textureSize;
+            }
+        }
+
+        // Обновление игры
+        function update() {
+            if (!gameOver) {
+                // Перемещение яйца вниз с увеличенной скоростью
+                eggY += eggSpeed;
+
+                // Если яйцо достигло дна
+                if (eggY > canvas.height) {
+                    // Установка новой позиции яйца
+                    eggX = Math.random() * (canvas.width - textureSize);
+                    eggY = 0;
+                    // Проверка на окончание игры, если волк не словил яйцо
+                    endGame();
+                }
+
+                // Проверка на столкновение
+                if (wolfX < eggX + textureSize &&
+                    wolfX + textureSize > eggX &&
+                    wolfY < eggY + textureSize &&
+                    wolfY + textureSize > eggY) {
+                    // При столкновении
+// ооооооооо
+          // Проверка условия для переменной Ifer
+if (Ifer === "") {
+    Ifer = "on"; // Если Ifer пустой, устанавливаем его значение "on"
+} else {
+    // код для работы, который будет выполняться, если Ifer не пустой
+
+    // Сравнение равенства значений MType и skinType
+    if (MType === skinType) {
+        // Если MType равно skinType
+        // выполнить какие-то действия, например:
+        // console.log("MType равно skinType");
+        // или что-то еще, что вам нужно сделать
+        // равно
+    } else {
+        // Если MType не равно skinType, игра проиграна
+        endGame(); // вызываем функцию, которая завершает игру
+    }
+}
+// оооооооооо
+                    eggX = Math.random() * (canvas.width - textureSize);
+                    eggY = 0;
+                    score++; // Увеличение счётчика очков
+                    updateScore(); // Обновление отображения счётчика очков
+                    // Увеличение скорости падения яйца после каждого нового набранного очка
+                    eggSpeed += 0.1;
+                    // Выбор нового скина для яйца
+                    var eggTypes = Object.keys(eggSkins);
+                    var eggType = eggTypes[Math.floor(Math.random() * eggTypes.length)];
+                     MType = eggType;
+                    eggSkinType = eggSkins[eggType][Math.floor(Math.random() * eggSkins[eggType].length)];
+                }
+
+                draw();
+
+                // Проверка на удержание кнопок
+                if (moveLeftPressed) {
+                    moveWolf(-wolfSpeed);
+                }
+                if (moveRightPressed) {
+                    moveWolf(wolfSpeed);
+                }
+            }
+        }
+
+        // Отрисовка игры
+        function draw() {
+            // Очистка холста
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Отрисовка волка с выбранным скином
+            var wolfImg = new Image();
+            wolfImg.src = wolfSkins[skinType];
+            ctx.drawImage(wolfImg, wolfX, wolfY, textureSize, textureSize);
+
+            // Отрисовка яйца с выбранным скином
+            var eggImg = new Image();
+            eggImg.src = eggSkinType;
+            ctx.drawImage(eggImg, eggX, eggY, textureSize, textureSize);
+        }
+
+        // Обновление счётчика очков
+        function updateScore() {
+            document.getElementById("score").innerText = "Очки: " + score;
+            // Обновление рекорда, если текущий счёт больше сохраненного рекорда
+            if (score > record) {
+                record = score;
+                localStorage.setItem("record", record);
+                document.getElementById("record").innerText = "Рекорд: " + record;
+            }
+        }
+
+        // Завершение игры
+        function endGame() {
+            gameOver = true;
+            var gameOverText = document.getElementById("gameOverText");
+            gameOverText.innerText = "Игра окончена. Набрано очков: " + score;
+            document.getElementById("gameOver").style.display = "block";
+        }
+
+        // Начало игры заново
+        document.getElementById("restartButton").addEventListener("click", function() {
+            gameOver = false;
+            score = 0;
+            updateScore();
+            eggSpeed = 2; // Сброс скорости падения яйца
+            wolfX = canvas.width / 2;
+            eggX = Math.random() * (canvas.width - textureSize);
+            eggY = 0;
+            document.getElementById("gameOver").style.display = "none";
+        });
+
+        // Обновление игры каждые 16 миллисекунд
+        setInterval(update, 16);
+    </script>
+</body>
+</html>
